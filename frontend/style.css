@@ -1,0 +1,263 @@
+/* Global */
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f4f8fc;
+  margin: 0;
+  color: #1f2933;
+}
+
+/* Top Bar */
+.topbar {
+  background: #ffffff;
+  padding: 16px 40px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+/* Wizard Card */
+.wizard-card {
+  max-width: 900px;
+  margin: 40px auto;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 40px 50px 50px;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.08);
+}
+
+/* Steps */
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.step {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #6b7280;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.step span {
+  position: absolute;
+  top: 55px;
+  width: 120px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.step.active {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.step.active span {
+  color: #2563eb;
+}
+
+.line {
+  width: 80px;
+  height: 3px;
+  background: #e5e7eb;
+}
+
+/* Step Content */
+.step-content {
+  display: none;
+  text-align: center;
+}
+
+.step-content.active {
+  display: block;
+}
+
+.step-content h2 {
+  margin-bottom: 25px;
+  font-size: 1.6rem;
+}
+
+/* Upload Box */
+.upload-box {
+  border: 2px dashed #c7d2fe;
+  border-radius: 16px;
+  padding: 40px;
+  background: #f8faff;
+}
+
+.upload-box p {
+  margin: 8px 0;
+  font-weight: 600;
+}
+
+.upload-box .muted {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.upload-box input[type="file"] {
+  margin-top: 15px;
+}
+
+.upload-box small {
+  display: block;
+  margin-top: 10px;
+  color: #6b7280;
+}
+
+/* Inputs */
+input[type="text"],
+textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  font-size: 15px;
+  outline: none;
+}
+
+input[type="text"]:focus,
+textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Buttons */
+button {
+  margin-top: 25px;
+  background: #2563eb;
+  border: none;
+  color: #ffffff;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+button.secondary {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+button.secondary:hover {
+  background: #d1d5db;
+}
+
+/* Nav Buttons */
+.nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+/* Results */
+.results-section {
+  margin-top: 50px;
+}
+
+#result {
+  background: #0f172a;
+  color: #e5e7eb;
+  padding: 20px;
+  border-radius: 14px;
+  font-size: 13px;
+  overflow-x: auto;
+}
+/* =========================
+   Autocomplete Suggestions
+========================= */
+
+.autocomplete-container {
+  position: relative;
+  width: 100%;
+}
+
+.suggestions-box {
+  position: absolute;
+  top: 105%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  z-index: 1000;
+  max-height: 220px;
+  overflow-y: auto;
+  display: none;
+}
+
+.suggestion-item {
+  padding: 12px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2933;
+}
+
+.suggestion-item:hover {
+  background: #f1f5f9;
+}
+/* =========================
+   Results Dashboard
+========================= */
+
+.result-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.card {
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card p {
+  font-size: 22px;
+  font-weight: 800;
+  color: #2563eb;
+  margin: 0;
+}
+
+#missingSkillsList {
+  margin-top: 10px;
+  padding-left: 20px;
+}
+
+#missingSkillsList li {
+  margin-bottom: 6px;
+  color: #374151;
+  font-weight: 500;
+}

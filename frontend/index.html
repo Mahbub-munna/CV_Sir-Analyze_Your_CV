@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CV Sir - Smart Resume Analyzer</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="topbar">
+    <div class="logo">CV Sir</div>
+  </header>
+
+  <!-- Main Card -->
+  <div class="wizard-card">
+
+    <!-- Steps -->
+    <div class="steps">
+      <div class="step active">1 <span>Upload CV</span></div>
+      <div class="line"></div>
+      <div class="step">2 <span>Job Title</span></div>
+      <div class="line"></div>
+      <div class="step">3 <span>Job Description</span></div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="step-content active" id="step1">
+      <h2>Upload Your Resume</h2>
+
+      <div class="upload-box">
+        <p>Drag & Drop your resume here</p>
+        <p class="muted">or</p>
+        <input type="file" id="resumeFile" />
+        <small>PDF or DOCX</small>
+      </div>
+
+      <button type="button" onclick="goToStep(2)">Next</button>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-content" id="step2">
+      <h2>Enter Job Title</h2>
+
+      <div class="autocomplete-container">
+        <input
+          type="text"
+          id="targetRole"
+          placeholder="Start typing a job title..."
+          autocomplete="off"
+        />
+        <div id="roleSuggestions" class="suggestions-box"></div>
+      </div> 
+
+      <div class="nav-buttons">
+        <button type="button" class="secondary" onclick="goToStep(1)">Back</button>
+        <button type="button" onclick="goToStep(3)">Next</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-content" id="step3">
+      <h2>Paste Job Description</h2>
+
+      <textarea
+        id="jdText"
+        rows="8"
+        placeholder="Paste the full job description here..."></textarea>
+
+      <div class="nav-buttons">
+        <button type="button" class="secondary" onclick="goToStep(2)">Back</button>
+        <button type="button" onclick="analyze(event)">Analyze Resume</button>
+      </div>
+    </div>
+
+    <!-- ========================= -->
+    <!-- RESULTS (ONLY ONE CLEAN) -->
+    <!-- ========================= -->
+    <div class="results-section">
+      <h2>Analysis Results</h2>
+
+      <!-- Summary Cards -->
+      <div class="result-cards">
+        <div class="card">
+          <h3>Target Role</h3>
+          <p id="resTargetRole">-</p>
+        </div>
+
+        <div class="card">
+          <h3>Role Match %</h3>
+          <p id="resRoleMatch">-</p>
+        </div>
+
+        <div class="card">
+          <h3>JD Match %</h3>
+          <p id="resJdMatch">N/A</p>
+        </div>
+      </div>
+
+      <!-- Role Match Chart -->
+      <h3>Role Match Breakdown</h3>
+      <canvas id="roleChart" height="120"></canvas>
+
+      <!-- TARGET ROLE ANALYSIS -->
+      <h3>Missing Skills for Target Role</h3>
+      <ul id="roleMissingSkillsList"></ul>
+
+      <h3>Extra Skills for Target Role (Consider Removing)</h3>
+      <ul id="roleExtraSkillsList"></ul>
+
+      <!-- JOB DESCRIPTION ANALYSIS -->
+      <h3>Missing Skills from Job Description</h3>
+      <ul id="jdMissingSkillsList"></ul>
+
+      <h3>Extra Skills (Not Required for This Job)</h3>
+      <ul id="jdExtraSkillsList"></ul>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
