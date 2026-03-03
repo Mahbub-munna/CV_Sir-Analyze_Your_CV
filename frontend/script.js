@@ -139,7 +139,7 @@ async function analyze(event) {
   }
 
   try {
-    renderResults(data);
+    await renderResults(data);
     document.querySelector(".results-section")
       .scrollIntoView({ behavior: "smooth" });
   } catch (err) {
@@ -153,7 +153,7 @@ async function analyze(event) {
 // -----------------------------
 let roleChart = null;
 
-function renderResults(data) {
+async function renderResults(data) {
   const roleMatches = data.role_matches || {};
 
   // -------- Summary --------
@@ -195,6 +195,8 @@ function renderResults(data) {
     data.jd_extra_skills || [],
     "No extra JD skills 🎉"
   );
+
+  await renderRecommendedJobs(data);
 
   // -------- Role Match Chart --------
   const labels = Object.keys(roleMatches);
@@ -246,4 +248,66 @@ function renderList(elementId, items, emptyText) {
     li.textContent = item;
     ul.appendChild(li);
   });
+}
+
+
+async function renderRecommendedJobs(data) {
+  const container = document.getElementById("recommendedJobs");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  const careerProfile = data.career_profile || {};
+  const rankedRoles = Object.entries(careerProfile)
+    .sort((a, b) => (b[1]?.score || 0) - (a[1]?.score || 0))
+    .slice(0, 3);
+
+  if (rankedRoles.length === 0) {
+    container.textContent = "No recommendations yet. Analyze a resume first.";
+    return;
+  }
+
+  for (const [role, profile] of rankedRoles) {
+    const level = profile?.level || "Internship";
+    const score = profile?.score ?? 0;
+
+    const card = document.createElement("div");
+    card.className = "job-card";
+
+    const title = document.createElement("h4");
+    title.textContent = role;
+
+    const meta = document.createElement("div");
+    meta.className = "job-meta";
+    meta.innerHTML = `
+      <span><strong>Level:</strong> ${level}</span>
+      <span><strong>Career readiness:</strong> ${score}%</span>
+    `;
+
+    const links = document.createElement("div");
+    links.className = "job-links";
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/job-recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, level })
+      });
+
+      const recommendation = await response.json();
+      const externalLinks = recommendation.external_links || {};
+
+      links.innerHTML = `
+        <a href="${externalLinks.linkedin || "#"}" target="_blank" rel="noopener noreferrer">LinkedIn Jobs</a>
+        <a href="${externalLinks.indeed || "#"}" target="_blank" rel="noopener noreferrer">Indeed Jobs</a>
+      `;
+    } catch (error) {
+      links.textContent = "Job links unavailable right now.";
+    }
+
+    card.appendChild(title);
+    card.appendChild(meta);
+    card.appendChild(links);
+    container.appendChild(card);
+  }
 }
