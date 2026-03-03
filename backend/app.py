@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import shutil
@@ -9,8 +10,26 @@ from skill_extractor import extract_skills
 from jd_scorer import compare_resume_with_jd
 from roles import JOB_ROLES
 from scorer import calculate_score
+from career_scorer import calculate_career_readiness, classify_job_level
+from job_recommender import get_job_queries, build_external_links
 
 app = FastAPI()
+
+
+class JobRecommendationRequest(BaseModel):
+    role: str
+    level: str
+
+
+@app.post("/job-recommendations")
+async def job_recommendations(payload: JobRecommendationRequest):
+    job_queries = get_job_queries(payload.role, payload.level)
+    external_links = build_external_links(job_queries)
+
+    return JSONResponse(content={
+        "job_queries": job_queries,
+        "external_links": external_links
+    })
 
 # -----------------------------
 # CORS
@@ -36,7 +55,9 @@ os.makedirs(UPLOAD_RESUME_DIR, exist_ok=True)
 async def analyze_resume(
     resume: UploadFile = File(...),
     job_description_text: str = Form(None),
-    target_role: str = Form(...)
+    target_role: str = Form(...),
+    experience_years: float = Form(0),
+    projects: int = Form(0)
 ):
     try:
         # -------- Save Resume --------
@@ -110,6 +131,21 @@ async def analyze_resume(
         response["role_matches"] = dict(
             sorted(role_results.items(), key=lambda x: x[1], reverse=True)
         )
+
+        career_profile = {}
+        for role, data in JOB_ROLES.items():
+            score, _breakdown = calculate_career_readiness(
+                resume_skills,
+                experience_years,
+                projects,
+                data,
+            )
+            career_profile[role] = {
+                "score": float(score),
+                "level": classify_job_level(score)
+            }
+
+        response["career_profile"] = career_profile
 
         print("FINAL RESPONSE:", response)
         return JSONResponse(content=response)
