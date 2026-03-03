@@ -11,8 +11,12 @@ from jd_scorer import compare_resume_with_jd
 from roles import JOB_ROLES
 from scorer import calculate_score
 from career_scorer import calculate_career_readiness, classify_job_level
+codex/find-information-on-cv-sir-project-t42u89
 from job_recommender import get_job_queries, build_external_links
 
+codex/find-information-on-cv-sir-project-eoap3t
+from job_recommender import get_job_queries, build_external_links
+main
 app = FastAPI()
 
 
