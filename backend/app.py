@@ -1,4 +1,7 @@
+from typing import Optional
+
 from fastapi import FastAPI, UploadFile, File, Form
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import shutil
@@ -9,8 +12,39 @@ from skill_extractor import extract_skills
 from jd_scorer import compare_resume_with_jd
 from roles import JOB_ROLES
 from scorer import calculate_score
+from career_scorer import calculate_career_readiness, classify_job_level
+from job_recommender import get_job_queries, build_external_links
 
 app = FastAPI()
+
+
+class JobRecommendationRequest(BaseModel):
+    role: Optional[str] = None
+    level: Optional[str] = None
+
+
+@app.post("/job-recommendations")
+async def job_recommendations(payload: JobRecommendationRequest):
+    try:
+        job_queries = get_job_queries(payload.role, payload.level)
+        external_links = build_external_links(job_queries)
+
+        return JSONResponse(content={
+            "job_queries": job_queries,
+            "external_links": external_links
+        })
+    except Exception as e:
+        print("JOB RECOMMENDATION ERROR:", e)
+        fallback_queries = get_job_queries(payload.role if payload else None, payload.level if payload else None)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "job_queries": fallback_queries,
+                "external_links": build_external_links(fallback_queries),
+                "error": "Could not build complete recommendations"
+            }
+        )
+
 
 # -----------------------------
 # CORS
@@ -35,8 +69,10 @@ os.makedirs(UPLOAD_RESUME_DIR, exist_ok=True)
 @app.post("/analyze")
 async def analyze_resume(
     resume: UploadFile = File(...),
-    job_description_text: str = Form(None),
-    target_role: str = Form(...)
+    job_description_text: Optional[str] = Form(None),
+    target_role: str = Form(...),
+    experience_years: Optional[float] = Form(0),
+    projects: Optional[int] = Form(0)
 ):
     try:
         # -------- Save Resume --------
@@ -46,7 +82,7 @@ async def analyze_resume(
 
         # -------- Extract Resume Skills --------
         resume_text = extract_text(resume_path)
-        resume_skills = list(set(extract_skills(resume_text)))
+        resume_skills = list(set(extract_skills(resume_text or "")))
 
         response = {
             "target_role": target_role,
@@ -60,7 +96,6 @@ async def analyze_resume(
             JOB_ROLES.get(target_role, {}).get("skills", [])
         ))
 
-        matched_role = [s for s in resume_skills if s in role_required_skills]
         role_missing_skills = [s for s in role_required_skills if s not in resume_skills]
         role_extra_skills = [s for s in resume_skills if s not in role_required_skills]
 
@@ -78,7 +113,7 @@ async def analyze_resume(
         if job_description_text and job_description_text.strip():
             jd_skills = list(set(extract_skills(job_description_text)))
 
-            jd_score, jd_matched, jd_missing = compare_resume_with_jd(
+            jd_score, _jd_matched, jd_missing = compare_resume_with_jd(
                 resume_skills, jd_skills
             )
 
@@ -91,7 +126,6 @@ async def analyze_resume(
                 "jd_extra_skills": jd_extra_skills
             })
         else:
-            # If no JD provided, be explicit
             response.update({
                 "jd_match_percentage": None,
                 "jd_missing_skills": [],
@@ -103,13 +137,28 @@ async def analyze_resume(
         # =============================
         role_results = {}
         for role, data in JOB_ROLES.items():
-            score = calculate_score(resume_skills, data["skills"])
+            score = calculate_score(resume_skills, data.get("skills", []))
             if score > 0:
                 role_results[role] = float(score)
 
         response["role_matches"] = dict(
             sorted(role_results.items(), key=lambda x: x[1], reverse=True)
         )
+
+        career_profile = {}
+        for role, data in JOB_ROLES.items():
+            score, _breakdown = calculate_career_readiness(
+                resume_skills,
+                experience_years,
+                projects,
+                data,
+            )
+            career_profile[role] = {
+                "score": float(score),
+                "level": classify_job_level(score)
+            }
+
+        response["career_profile"] = career_profile
 
         print("FINAL RESPONSE:", response)
         return JSONResponse(content=response)
