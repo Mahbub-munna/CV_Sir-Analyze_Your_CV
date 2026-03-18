@@ -17,7 +17,7 @@ def compare_resume_with_jd(resume_skills, jd_skills):
     # Matched skills
     matched = list(resume_set.intersection(jd_set))
 
-    # Missing skills (present in JD but not in resume)
+    # Missing skills
     missing = list(jd_set.difference(resume_set))
 
     match_percentage = round(

@@ -16,6 +16,7 @@ JOB_ROLES = {
         ]
     },
 
+
     "Data Engineer": {
         "category": "Data",
         "core_skills": [
