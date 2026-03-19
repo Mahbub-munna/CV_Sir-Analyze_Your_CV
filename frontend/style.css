@@ -320,14 +320,14 @@ button.secondary:hover {
   font-size: 14px;
 }
 
-.job-links a {
+.job-links a:not(.job-btn) {
   margin-right: 12px;
   color: #2563eb;
   font-weight: 600;
   text-decoration: none;
 }
 
-.job-links a:hover {
+.job-links a:not(.job-btn):hover {
   text-decoration: underline;
 }
 
@@ -349,4 +349,45 @@ button.secondary:hover {
   .extra-inputs {
     flex-direction: column;
   }
+}
+/* ===============================
+   JOB BUTTON STYLE (MODERN)
+================================ */
+
+.job-links {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.job-btn {
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.25s ease;
+  color: white;
+}
+
+/* LinkedIn */
+.job-btn.linkedin {
+  background: #0a66c2;
+}
+
+.job-btn.linkedin:hover {
+  background: #084c94;
+  transform: translateY(-2px);
+}
+
+/* Indeed */
+.job-btn.indeed {
+  background: #2563eb;
+}
+
+.job-btn.indeed:hover {
+  background: #1e40af;
+  transform: translateY(-2px);
 }
