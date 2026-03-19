@@ -1,121 +1,205 @@
+# -----------------------------------
+# Career Role Definitions
+# -----------------------------------
+
 JOB_ROLES = {
 
     "Data Analyst": {
-        "skills": [
-            "sql", "python", "excel", "power bi", "tableau",
-            "statistics", "data cleaning", "data visualization",
-            "pandas", "numpy", "dashboard", "reporting"
+        "category": "Data",
+        "core_skills": [
+            "sql", "python", "statistics",
+            "pandas", "data cleaning"
+        ],
+        "secondary_skills": [
+            "excel", "power bi", "tableau",
+            "numpy", "dashboard", "reporting"
         ]
     },
 
+
     "Data Engineer": {
-        "skills": [
-            "python", "sql", "spark", "hadoop", "airflow",
-            "etl", "data pipelines", "data warehouse",
+        "category": "Data",
+        "core_skills": [
+            "python", "sql", "etl",
+            "data pipelines", "data warehouse"
+        ],
+        "secondary_skills": [
+            "spark", "hadoop", "airflow",
             "aws", "gcp", "snowflake", "bigquery"
         ]
     },
 
     "Business Analyst": {
-        "skills": [
+        "category": "Business",
+        "core_skills": [
             "business analysis", "requirements gathering",
-            "stakeholder management", "excel", "sql",
-            "kpi", "process modeling", "documentation"
+            "stakeholder management"
+        ],
+        "secondary_skills": [
+            "excel", "sql", "kpi",
+            "process modeling", "documentation"
         ]
     },
 
     "Machine Learning Engineer": {
-        "skills": [
-            "python", "machine learning", "scikit-learn",
-            "tensorflow", "pytorch", "data preprocessing",
-            "model deployment", "feature engineering"
+        "category": "AI",
+        "core_skills": [
+            "python", "machine learning",
+            "model deployment"
+        ],
+        "secondary_skills": [
+            "scikit-learn", "tensorflow",
+            "pytorch", "feature engineering",
+            "data preprocessing"
         ]
     },
 
     "AI Engineer": {
-        "skills": [
-            "python", "deep learning", "nlp", "computer vision",
-            "tensorflow", "pytorch", "model optimization",
-            "llm", "api integration"
+        "category": "AI",
+        "core_skills": [
+            "python", "deep learning",
+            "llm"
+        ],
+        "secondary_skills": [
+            "nlp", "computer vision",
+            "tensorflow", "pytorch",
+            "model optimization",
+            "api integration"
         ]
     },
 
     "Backend Developer": {
-        "skills": [
-            "python", "java", "node.js", "api development",
-            "rest api", "sql", "postgresql",
-            "authentication", "system design"
+        "category": "Development",
+        "core_skills": [
+            "python", "java", "node.js",
+            "rest api"
+        ],
+        "secondary_skills": [
+            "sql", "postgresql",
+            "authentication",
+            "system design",
+            "api development"
         ]
     },
 
     "Frontend Developer": {
-        "skills": [
-            "html", "css", "javascript", "react",
-            "next.js", "responsive design",
-            "ui implementation", "performance optimization"
+        "category": "Development",
+        "core_skills": [
+            "html", "css", "javascript"
+        ],
+        "secondary_skills": [
+            "react", "next.js",
+            "responsive design",
+            "performance optimization",
+            "ui implementation"
         ]
     },
 
     "Full Stack Developer": {
-        "skills": [
-            "html", "css", "javascript", "react",
-            "node.js", "python", "sql",
-            "rest api", "deployment"
+        "category": "Development",
+        "core_skills": [
+            "html", "css", "javascript",
+            "node.js"
+        ],
+        "secondary_skills": [
+            "react", "python",
+            "sql", "rest api",
+            "deployment"
         ]
     },
 
     "DevOps Engineer": {
-        "skills": [
-            "linux", "docker", "kubernetes",
-            "ci/cd", "aws", "azure",
-            "monitoring", "infrastructure as code"
+        "category": "Infrastructure",
+        "core_skills": [
+            "linux", "docker",
+            "kubernetes", "ci/cd"
+        ],
+        "secondary_skills": [
+            "aws", "azure",
+            "monitoring",
+            "infrastructure as code"
         ]
     },
 
     "Cloud Engineer": {
-        "skills": [
-            "aws", "azure", "gcp",
-            "cloud architecture", "networking",
-            "security", "terraform"
+        "category": "Infrastructure",
+        "core_skills": [
+            "aws", "azure", "gcp"
+        ],
+        "secondary_skills": [
+            "cloud architecture",
+            "networking",
+            "security",
+            "terraform"
         ]
     },
 
     "Cyber Security Analyst": {
-        "skills": [
-            "cyber security", "network security",
-            "vulnerability assessment", "penetration testing",
-            "siem", "incident response"
+        "category": "Security",
+        "core_skills": [
+            "cyber security",
+            "network security",
+            "incident response"
+        ],
+        "secondary_skills": [
+            "vulnerability assessment",
+            "penetration testing",
+            "siem"
         ]
     },
 
     "UI/UX Designer": {
-        "skills": [
-            "figma", "wireframing", "prototyping",
-            "user research", "ui design",
-            "usability testing", "design systems"
+        "category": "Design",
+        "core_skills": [
+            "figma",
+            "wireframing",
+            "prototyping"
+        ],
+        "secondary_skills": [
+            "user research",
+            "ui design",
+            "usability testing",
+            "design system"
         ]
     },
 
     "Product Manager": {
-        "skills": [
-            "product management", "roadmapping",
-            "stakeholder communication", "user stories",
-            "market research", "agile"
+        "category": "Product",
+        "core_skills": [
+            "product management",
+            "roadmapping",
+            "stakeholder communication"
+        ],
+        "secondary_skills": [
+            "user stories",
+            "market research",
+            "agile"
         ]
     },
 
     "QA Engineer": {
-        "skills": [
-            "manual testing", "automation testing",
-            "test cases", "selenium",
-            "bug tracking", "api testing"
+        "category": "Quality",
+        "core_skills": [
+            "manual testing",
+            "automation testing",
+            "test cases"
+        ],
+        "secondary_skills": [
+            "selenium",
+            "bug tracking",
+            "api testing"
         ]
     },
 
     "Mobile App Developer": {
-        "skills": [
-            "android", "ios", "flutter",
-            "react native", "mobile ui",
+        "category": "Development",
+        "core_skills": [
+            "android", "ios",
+            "flutter"
+        ],
+        "secondary_skills": [
+            "react native",
+            "mobile ui",
             "api integration"
         ]
     }

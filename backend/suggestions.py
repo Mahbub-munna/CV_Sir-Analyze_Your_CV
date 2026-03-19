@@ -23,4 +23,5 @@ def generate_suggestions(found_skills, target_role, role_data, all_roles):
             f"Reduce focus on unrelated skills: {', '.join(irrelevant_skills)}"
         )
 
+
     return suggestions
