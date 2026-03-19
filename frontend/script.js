@@ -1,6 +1,9 @@
-// -----------------------------
-// Job Roles (Frontend Copy)
-// -----------------------------
+// ===============================
+// CONFIG
+// ===============================
+
+const BASE_API_URL = "http://127.0.0.1:8000";
+
 const JOB_ROLES = [
   "Data Analyst",
   "Data Engineer",
@@ -19,9 +22,10 @@ const JOB_ROLES = [
   "Mobile App Developer"
 ];
 
-// -----------------------------
-// Stepper Logic
-// -----------------------------
+// ===============================
+// STEP NAVIGATION
+// ===============================
+
 function goToStep(stepNumber) {
   document.querySelectorAll(".step-content").forEach(el => {
     el.classList.remove("active");
@@ -37,45 +41,48 @@ function goToStep(stepNumber) {
   document.getElementById(`step${stepNumber}`).classList.add("active");
 }
 
-// -----------------------------
-// Autocomplete Logic
-// -----------------------------
+// ===============================
+// AUTOCOMPLETE
+// ===============================
+
 const roleInput = document.getElementById("targetRole");
 const suggestionsBox = document.getElementById("roleSuggestions");
 
-roleInput.addEventListener("input", () => {
-  const query = roleInput.value.toLowerCase().trim();
-  suggestionsBox.innerHTML = "";
+if (roleInput) {
+  roleInput.addEventListener("input", () => {
+    const query = roleInput.value.toLowerCase().trim();
+    suggestionsBox.innerHTML = "";
 
-  if (!query) {
-    suggestionsBox.style.display = "none";
-    return;
-  }
-
-  const matches = JOB_ROLES.filter(role =>
-    role.toLowerCase().includes(query)
-  );
-
-  if (matches.length === 0) {
-    suggestionsBox.style.display = "none";
-    return;
-  }
-
-  matches.forEach(role => {
-    const div = document.createElement("div");
-    div.className = "suggestion-item";
-    div.textContent = role;
-
-    div.onclick = () => {
-      roleInput.value = role;
+    if (!query) {
       suggestionsBox.style.display = "none";
-    };
+      return;
+    }
 
-    suggestionsBox.appendChild(div);
+    const matches = JOB_ROLES.filter(role =>
+      role.toLowerCase().includes(query)
+    );
+
+    if (matches.length === 0) {
+      suggestionsBox.style.display = "none";
+      return;
+    }
+
+    matches.forEach(role => {
+      const div = document.createElement("div");
+      div.className = "suggestion-item";
+      div.textContent = role;
+
+      div.onclick = () => {
+        roleInput.value = role;
+        suggestionsBox.style.display = "none";
+      };
+
+      suggestionsBox.appendChild(div);
+    });
+
+    suggestionsBox.style.display = "block";
   });
-
-  suggestionsBox.style.display = "block";
-});
+}
 
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".autocomplete-container")) {
@@ -83,126 +90,113 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// -----------------------------
-// Analyze (API Call)
-// -----------------------------
+// ===============================
+// ANALYZE
+// ===============================
+
 async function analyze(event) {
-  if (event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
+  if (event) event.preventDefault();
 
   const resumeFile = document.getElementById("resumeFile").files[0];
-  const jdText = document.getElementById("jdText").value;
   const targetRole = document.getElementById("targetRole").value;
+  const jdText = document.getElementById("jdText").value;
+  const experienceYears = document.getElementById("experienceYears")?.value || 0;
+  const projects = document.getElementById("projectsCount")?.value || 0;
 
   if (!resumeFile) {
-    alert("Please upload your resume!");
+    alert("Please upload your resume");
     return;
   }
 
   if (!targetRole) {
-    alert("Please enter a job title!");
+    alert("Please enter a job title");
     return;
   }
-
-  // Loading UI
-  document.getElementById("resTargetRole").textContent = targetRole;
-  document.getElementById("resRoleMatch").textContent = "Analyzing...";
-  document.getElementById("resJdMatch").textContent = jdText ? "Analyzing..." : "N/A";
 
   const formData = new FormData();
   formData.append("resume", resumeFile);
   formData.append("target_role", targetRole);
+  formData.append("experience_years", experienceYears);
+  formData.append("projects", projects);
 
   if (jdText) {
     formData.append("job_description_text", jdText);
   }
 
-  let data;
-
   try {
-    const response = await fetch("http://127.0.0.1:8000/analyze", {
+    const response = await fetch(`${BASE_API_URL}/analyze`, {
       method: "POST",
       body: formData
     });
 
-    const rawText = await response.text();
-    console.log("RAW BACKEND RESPONSE:", rawText);
-
-    data = JSON.parse(rawText);
+    const data = await response.json();
+    renderResults(data);
 
   } catch (err) {
-    console.error("FETCH / PARSE ERROR:", err);
-    alert("Failed to fetch or parse backend response. Check console.");
-    return;
-  }
-
-  try {
-    await renderResults(data);
-    document.querySelector(".results-section")
-      .scrollIntoView({ behavior: "smooth" });
-  } catch (err) {
-    console.error("RENDER ERROR:", err);
-    alert("Render error. Check console.");
+    console.error("Analyze error:", err);
+    alert("Backend error");
   }
 }
 
-// -----------------------------
-// Results Rendering + Chart
-// -----------------------------
-let roleChart = null;
+// ===============================
+// RENDER RESULTS
+// ===============================
 
-async function renderResults(data) {
-  const roleMatches = data.role_matches || {};
+function renderResults(data) {
 
-  // -------- Summary --------
-  document.getElementById("resTargetRole").textContent =
-    data.target_role || "-";
+  document.getElementById("resTargetRole").textContent = data.target_role || "-";
 
   document.getElementById("resRoleMatch").textContent =
-    data.role_match_percentage !== undefined
-      ? data.role_match_percentage + "%"
-      : "N/A";
+    data.role_match_percentage + "%";
 
   document.getElementById("resJdMatch").textContent =
-    data.jd_match_percentage !== null && data.jd_match_percentage !== undefined
+    data.jd_match_percentage !== null
       ? data.jd_match_percentage + "%"
       : "N/A";
 
-  // -------- Target Role Lists --------
-  renderList(
-    "roleMissingSkillsList",
-    data.role_missing_skills || [],
-    "No missing skills for target role 🎉"
-  );
+  renderList("roleMissingSkillsList", data.role_missing_skills);
+  renderList("roleExtraSkillsList", data.role_extra_skills);
+  renderList("jdMissingSkillsList", data.jd_missing_skills);
 
-  renderList(
-    "roleExtraSkillsList",
-    data.role_extra_skills || [],
-    "No extra skills to remove 🎉"
-  );
+  renderChart(data.role_matches || {});
+  renderRecommendedJobs(data);
+}
 
-  // -------- Job Description Lists --------
-  renderList(
-    "jdMissingSkillsList",
-    data.jd_missing_skills || [],
-    "No missing JD skills 🎉"
-  );
+// ===============================
+// LIST RENDER
+// ===============================
 
-  renderList(
-    "jdExtraSkillsList",
-    data.jd_extra_skills || [],
-    "No extra JD skills 🎉"
-  );
+function renderList(id, items = []) {
+  const ul = document.getElementById(id);
+  if (!ul) return;
 
-  await renderRecommendedJobs(data);
+  ul.innerHTML = "";
 
-  // -------- Role Match Chart --------
+  if (!items || items.length === 0) {
+    ul.innerHTML = "<li>No items 🎉</li>";
+    return;
+  }
+
+  items.forEach(skill => {
+    const li = document.createElement("li");
+    li.textContent = skill;
+    ul.appendChild(li);
+  });
+}
+
+// ===============================
+// CHART
+// ===============================
+
+let roleChart = null;
+
+function renderChart(roleMatches) {
   const labels = Object.keys(roleMatches);
   const values = Object.values(roleMatches);
 
   const canvas = document.getElementById("roleChart");
+  if (!canvas) return;
+
   const ctx = canvas.getContext("2d");
 
   if (roleChart) roleChart.destroy();
@@ -214,12 +208,15 @@ async function renderResults(data) {
       datasets: [{
         label: "Role Match %",
         data: values,
+        backgroundColor: "#2563eb",
         borderRadius: 8
       }]
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false }
+      },
       scales: {
         y: { beginAtZero: true, max: 100 }
       }
@@ -227,87 +224,59 @@ async function renderResults(data) {
   });
 }
 
-// -----------------------------
-// Helper
-// -----------------------------
-function renderList(elementId, items, emptyText) {
-  const ul = document.getElementById(elementId);
-  if (!ul) return;
-
-  ul.innerHTML = "";
-
-  if (!items || items.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = emptyText;
-    ul.appendChild(li);
-    return;
-  }
-
-  items.forEach(item => {
-    const li = document.createElement("li");
-    li.textContent = item;
-    ul.appendChild(li);
-  });
-}
-
+// ===============================
+// JOB RECOMMENDATIONS
+// ===============================
 
 async function renderRecommendedJobs(data) {
-  const container = document.getElementById("recommendedJobs");
-  if (!container) return;
 
+  const container = document.getElementById("recommendedJobs");
   container.innerHTML = "";
 
-  const careerProfile = data.career_profile || {};
-  const rankedRoles = Object.entries(careerProfile)
-    .sort((a, b) => (b[1]?.score || 0) - (a[1]?.score || 0))
+  const rankedRoles = Object.entries(data.career_profile || {})
+    .sort((a, b) => b[1].score - a[1].score)
     .slice(0, 3);
 
-  if (rankedRoles.length === 0) {
-    container.textContent = "No recommendations yet. Analyze a resume first.";
-    return;
-  }
-
   for (const [role, profile] of rankedRoles) {
-    const level = profile?.level || "Internship";
-    const score = profile?.score ?? 0;
 
-    const card = document.createElement("div");
-    card.className = "job-card";
-
-    const title = document.createElement("h4");
-    title.textContent = role;
-
-    const meta = document.createElement("div");
-    meta.className = "job-meta";
-    meta.innerHTML = `
-      <span><strong>Level:</strong> ${level}</span>
-      <span><strong>Career readiness:</strong> ${score}%</span>
-    `;
-
-    const links = document.createElement("div");
-    links.className = "job-links";
+    const formData = new FormData();
+    formData.append("role", role);
+    formData.append("level", profile.level);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/job-recommendations", {
+      const response = await fetch(`${BASE_API_URL}/job-recommendations`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, level })
+        body: formData
       });
 
-      const recommendation = await response.json();
-      const externalLinks = recommendation.external_links || {};
+      const result = await response.json();
 
-      links.innerHTML = `
-        <a href="${externalLinks.linkedin || "#"}" target="_blank" rel="noopener noreferrer">LinkedIn Jobs</a>
-        <a href="${externalLinks.indeed || "#"}" target="_blank" rel="noopener noreferrer">Indeed Jobs</a>
+      const card = document.createElement("div");
+      card.className = "job-card";
+
+      // 🔥 ONLY UI CHANGE HERE
+      card.innerHTML = `
+        <h4>${role}</h4>
+
+        <div class="job-meta">
+          <span><strong>Level:</strong> ${profile.level}</span>
+          <span><strong>Readiness:</strong> ${profile.score}%</span>
+        </div>
+
+        <div class="job-links">
+          <a class="job-btn linkedin" href="${result.external_links.linkedin}" target="_blank">
+            LinkedIn Jobs →
+          </a>
+          <a class="job-btn indeed" href="${result.external_links.indeed}" target="_blank">
+            Indeed Jobs →
+          </a>
+        </div>
       `;
-    } catch (error) {
-      links.textContent = "Job links unavailable right now.";
-    }
 
-    card.appendChild(title);
-    card.appendChild(meta);
-    card.appendChild(links);
-    container.appendChild(card);
+      container.appendChild(card);
+
+    } catch (err) {
+      console.error("Recommendation error:", err);
+    }
   }
 }
