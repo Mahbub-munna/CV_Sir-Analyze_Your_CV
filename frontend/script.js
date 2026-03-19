@@ -3,7 +3,6 @@
 // ===============================
 
 const BASE_API_URL = "http://127.0.0.1:8000";
-// const BASE_API_URL = "https://cv-sir.onrender.com";
 
 const JOB_ROLES = [
   "Data Analyst",
@@ -23,11 +22,10 @@ const JOB_ROLES = [
   "Mobile App Developer"
 ];
 
-let roleChart = null;
-
 // ===============================
 // STEP NAVIGATION
 // ===============================
+
 function goToStep(stepNumber) {
   document.querySelectorAll(".step-content").forEach(el => {
     el.classList.remove("active");
@@ -46,6 +44,7 @@ function goToStep(stepNumber) {
 // ===============================
 // AUTOCOMPLETE
 // ===============================
+
 const roleInput = document.getElementById("targetRole");
 const suggestionsBox = document.getElementById("roleSuggestions");
 
@@ -94,31 +93,25 @@ document.addEventListener("click", (e) => {
 // ===============================
 // ANALYZE
 // ===============================
+
 async function analyze(event) {
-  if (event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
+  if (event) event.preventDefault();
 
   const resumeFile = document.getElementById("resumeFile").files[0];
-  const jdText = document.getElementById("jdText").value;
   const targetRole = document.getElementById("targetRole").value;
+  const jdText = document.getElementById("jdText").value;
   const experienceYears = document.getElementById("experienceYears")?.value || 0;
   const projects = document.getElementById("projectsCount")?.value || 0;
 
   if (!resumeFile) {
-    alert("Please upload your resume!");
+    alert("Please upload your resume");
     return;
   }
 
   if (!targetRole) {
-    alert("Please enter a job title!");
+    alert("Please enter a job title");
     return;
   }
-
-  document.getElementById("resTargetRole").textContent = targetRole;
-  document.getElementById("resRoleMatch").textContent = "Analyzing...";
-  document.getElementById("resJdMatch").textContent = jdText ? "Analyzing..." : "N/A";
 
   const formData = new FormData();
   formData.append("resume", resumeFile);
@@ -137,11 +130,7 @@ async function analyze(event) {
     });
 
     const data = await response.json();
-
     renderResults(data);
-
-    document.querySelector(".results-section")
-      .scrollIntoView({ behavior: "smooth" });
 
   } catch (err) {
     console.error("Analyze error:", err);
@@ -152,7 +141,9 @@ async function analyze(event) {
 // ===============================
 // RENDER RESULTS
 // ===============================
+
 function renderResults(data) {
+
   document.getElementById("resTargetRole").textContent = data.target_role || "-";
 
   document.getElementById("resRoleMatch").textContent =
@@ -174,6 +165,7 @@ function renderResults(data) {
 // ===============================
 // LIST RENDER
 // ===============================
+
 function renderList(id, items = []) {
   const ul = document.getElementById(id);
   if (!ul) return;
@@ -195,6 +187,9 @@ function renderList(id, items = []) {
 // ===============================
 // CHART
 // ===============================
+
+let roleChart = null;
+
 function renderChart(roleMatches) {
   const labels = Object.keys(roleMatches);
   const values = Object.values(roleMatches);
@@ -223,10 +218,7 @@ function renderChart(roleMatches) {
         legend: { display: false }
       },
       scales: {
-        y: {
-          beginAtZero: true,
-          max: 100
-        }
+        y: { beginAtZero: true, max: 100 }
       }
     }
   });
@@ -235,7 +227,9 @@ function renderChart(roleMatches) {
 // ===============================
 // JOB RECOMMENDATIONS
 // ===============================
+
 async function renderRecommendedJobs(data) {
+
   const container = document.getElementById("recommendedJobs");
   container.innerHTML = "";
 
@@ -244,6 +238,7 @@ async function renderRecommendedJobs(data) {
     .slice(0, 3);
 
   for (const [role, profile] of rankedRoles) {
+
     const formData = new FormData();
     formData.append("role", role);
     formData.append("level", profile.level);
@@ -259,15 +254,22 @@ async function renderRecommendedJobs(data) {
       const card = document.createElement("div");
       card.className = "job-card";
 
+      // 🔥 ONLY UI CHANGE HERE
       card.innerHTML = `
         <h4>${role}</h4>
+
         <div class="job-meta">
           <span><strong>Level:</strong> ${profile.level}</span>
           <span><strong>Readiness:</strong> ${profile.score}%</span>
         </div>
+
         <div class="job-links">
-          <a href="${result.external_links.linkedin}" target="_blank">LinkedIn Jobs</a>
-          <a href="${result.external_links.indeed}" target="_blank">Indeed Jobs</a>
+          <a class="job-btn linkedin" href="${result.external_links.linkedin}" target="_blank">
+            LinkedIn Jobs →
+          </a>
+          <a class="job-btn indeed" href="${result.external_links.indeed}" target="_blank">
+            Indeed Jobs →
+          </a>
         </div>
       `;
 
