@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import shutil
@@ -11,6 +12,7 @@ from jd_scorer import compare_resume_with_jd
 from roles import JOB_ROLES
 from scorer import calculate_score
 from career_scorer import calculate_career_readiness, classify_job_level
+from job_recommender import get_job_queries, build_external_links
 from job_recommender import build_external_links
 
 
@@ -19,10 +21,24 @@ from job_recommender import build_external_links
 # -----------------------------------
 app = FastAPI()
 
+class JobRecommendationRequest(BaseModel):
+    role: str
+    level: str
 
-# -----------------------------------
-# CORS Configuration (FIXED)
-# -----------------------------------
+
+@app.post("/job-recommendations")
+async def job_recommendations(payload: JobRecommendationRequest):
+    job_queries = get_job_queries(payload.role, payload.level)
+    external_links = build_external_links(job_queries)
+
+    return JSONResponse(content={
+        "job_queries": job_queries,
+        "external_links": external_links
+    })
+
+# -----------------------------
+# CORS
+# -----------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -177,6 +193,17 @@ async def analyze_resume(
             sorted(role_results.items(), key=lambda x: x[1], reverse=True)
         )
 
+        career_profile = {}
+        for role, data in JOB_ROLES.items():
+            score, _breakdown = calculate_career_readiness(
+                resume_skills,
+                experience_years,
+                projects,
+                data,
+            )
+            career_profile[role] = {
+                "score": float(score),
+                "level": classify_job_level(score)
         # -----------------------------------
         # CAREER READINESS
         # -----------------------------------
@@ -199,6 +226,7 @@ async def analyze_resume(
 
         response["career_profile"] = career_profile
 
+        print("FINAL RESPONSE:", response)
         return JSONResponse(content=response)
 
     except ValueError as ve:

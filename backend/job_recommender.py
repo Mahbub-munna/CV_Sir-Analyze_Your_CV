@@ -1,10 +1,8 @@
 from urllib.parse import quote_plus
 
-
 # -----------------------------------
 # Role Aliases
 # -----------------------------------
-
 ROLE_QUERY_ALIASES = {
     "Data Analyst": ["Data Analyst", "Business Data Analyst", "Reporting Analyst"],
     "UI/UX Designer": ["UI UX Designer", "Product Designer", "UX Designer"],
@@ -22,22 +20,20 @@ ROLE_QUERY_ALIASES = {
     "QA Engineer": ["QA Engineer", "Test Engineer", "Automation QA Engineer"],
     "Mobile App Developer": ["Mobile App Developer", "Android Developer", "iOS Developer"],
 }
-
-
 # -----------------------------------
 # Level Prefix Mapping
 # -----------------------------------
-
 LEVEL_PREFIXES = {
     "Not Job Ready": ["Trainee"],
     "Internship": ["Intern", "Trainee"],
     "Junior": ["Junior", "Associate"],
     "Mid": ["Mid Level", "Experienced"],
+    "Strong Mid": ["Senior", "Lead"],
     "Strong Mid": ["Senior"],
     "Senior": ["Senior", "Lead", "Principal"],
 }
 
-
+def get_job_queries(role, level):
 # -----------------------------------
 # Generate Job Queries
 # -----------------------------------
@@ -46,11 +42,21 @@ def get_job_queries(role, level, max_titles_per_role=2):
     """
     Generate job search queries based on role + level.
     """
-
     base_titles = ROLE_QUERY_ALIASES.get(role, [role])
     prefixes = LEVEL_PREFIXES.get(level, [level])
 
     queries = []
+    for prefix in prefixes:
+        for title in base_titles[:2]:
+            queries.append(f"{prefix} {title}".strip())
+
+    # Keep order, remove duplicates
+    seen = set()
+    deduped = []
+    for query in queries:
+        if query not in seen:
+            seen.add(query)
+            deduped.append(query)
 
     for prefix in prefixes:
         for title in base_titles[:max_titles_per_role]:
@@ -67,7 +73,9 @@ def get_job_queries(role, level, max_titles_per_role=2):
 
     return deduped
 
-
+def build_external_links(job_queries):
+    joined_query = " OR ".join(job_queries) if job_queries else "jobs"
+    encoded_query = quote_plus(joined_query)
 # -----------------------------------
 # External Job Links Builder
 # -----------------------------------
@@ -91,5 +99,7 @@ def build_external_links(role, level, location=None):
     return {
         "linkedin": f"https://www.linkedin.com/jobs/search/?keywords={encoded_query}",
         "indeed": f"https://www.indeed.com/jobs?q={encoded_query}",
+    }
+
         "job_queries": job_queries
     }
