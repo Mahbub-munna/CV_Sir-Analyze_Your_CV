@@ -1,25 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-
   <meta charset="UTF-8">
-    <title>CV Sir - Smart Resume Analyzer</title>
-
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="../uploads/cv-logo.png">
-    
+  <title>CV Sir - Smart Resume Analyzer</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../uploads/cv-logo.png">
 </head>
 <body>
 <header class="topbar">
   <div class="logo">CV Sir</div>
+  <div id="authStatus" class="auth-status">Not logged in</div>
 </header>
 
-<div class="wizard-card">
+<div class="wizard-card auth-card">
+  <h2>Account</h2>
+  <div class="auth-grid">
+    <form id="registerForm" class="auth-form">
+      <h3>Register</h3>
+      <input type="text" id="registerName" placeholder="Full name" required>
+      <input type="email" id="registerEmail" placeholder="Email" required>
+      <input type="password" id="registerPassword" placeholder="Password (min 8 chars, letters + numbers)" required>
+      <button type="submit">Create Account</button>
+    </form>
 
-  <!-- STEPPER -->
+    <form id="loginForm" class="auth-form">
+      <h3>Login</h3>
+      <input type="email" id="loginEmail" placeholder="Email" required>
+      <input type="password" id="loginPassword" placeholder="Password" required>
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <div class="session-actions">
+    <button id="logoutBtn" type="button" class="secondary">Logout</button>
+  </div>
+  <p id="authMessage" class="auth-message"></p>
+</div>
+
+<div class="wizard-card" id="analyzerSection">
   <div class="steps">
     <div class="step active">1 <span>Upload CV</span></div>
     <div class="line"></div>
@@ -28,7 +47,6 @@
     <div class="step">3 <span>Job Description</span></div>
   </div>
 
-  <!-- STEP 1 -->
   <div class="step-content active" id="step1">
     <h2>Upload Your Resume</h2>
 
@@ -42,17 +60,11 @@
     <button type="button" onclick="goToStep(2)">Next</button>
   </div>
 
-  <!-- STEP 2 -->
   <div class="step-content" id="step2">
     <h2>Enter Job Title</h2>
 
     <div class="autocomplete-container">
-      <input
-        type="text"
-        id="targetRole"
-        placeholder="Start typing a job title..."
-        autocomplete="off"
-      />
+      <input type="text" id="targetRole" placeholder="Start typing a job title..." autocomplete="off" />
       <div id="roleSuggestions" class="suggestions-box"></div>
     </div>
 
@@ -67,14 +79,10 @@
     </div>
   </div>
 
-  <!-- STEP 3 -->
   <div class="step-content" id="step3">
     <h2>Paste Job Description</h2>
 
-    <textarea
-      id="jdText"
-      rows="8"
-      placeholder="Paste the full job description here..."></textarea>
+    <textarea id="jdText" rows="8" placeholder="Paste the full job description here..."></textarea>
 
     <div class="nav-buttons">
       <button type="button" class="secondary" onclick="goToStep(2)">Back</button>
@@ -82,7 +90,6 @@
     </div>
   </div>
 
-  <!-- RESULTS -->
   <div class="results-section">
     <h2>Analysis Results</h2>
 
@@ -111,7 +118,6 @@
     <h3>Role Match Breakdown</h3>
     <canvas id="roleChart" height="120"></canvas>
 
-    <!-- SKILL SECTIONS -->
     <div class="skill-section skill-missing">
       <h3>Missing Skills for Target Role</h3>
       <ul id="roleMissingSkillsList"></ul>
@@ -129,9 +135,7 @@
 
     <h3>Recommended Jobs</h3>
     <div id="recommendedJobs" class="recommended-jobs"></div>
-
   </div>
-
 </div>
 
 <script src="script.js"></script>
