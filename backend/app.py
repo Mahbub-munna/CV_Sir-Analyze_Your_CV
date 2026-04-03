@@ -1,4 +1,8 @@
 from datetime import datetime, timedelta, timezone
+import base64
+import hashlib
+import hmac
+import json
 import os
 import re
 import shutil
@@ -8,7 +12,6 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
 from pymongo import MongoClient
@@ -109,8 +112,58 @@ def validate_password_strength(password: str):
 
 def create_access_token(payload: dict) -> str:
     expire = datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
-    payload_to_encode = {**payload, "exp": expire}
-    return jwt.encode(payload_to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    payload_to_encode = {**payload, "exp": int(expire.timestamp())}
+    return encode_jwt(payload_to_encode, JWT_SECRET)
+
+
+def base64url_encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("utf-8")
+
+
+def base64url_decode(data: str) -> bytes:
+    padding = "=" * ((4 - len(data) % 4) % 4)
+    return base64.urlsafe_b64decode(data + padding)
+
+
+def encode_jwt(payload: dict, secret: str) -> str:
+    if JWT_ALGORITHM != "HS256":
+        raise RuntimeError("Only HS256 is supported")
+
+    header = {"alg": "HS256", "typ": "JWT"}
+    header_segment = base64url_encode(json.dumps(header, separators=(",", ":")).encode("utf-8"))
+    payload_segment = base64url_encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
+    signing_input = f"{header_segment}.{payload_segment}".encode("utf-8")
+    signature = hmac.new(secret.encode("utf-8"), signing_input, hashlib.sha256).digest()
+    signature_segment = base64url_encode(signature)
+    return f"{header_segment}.{payload_segment}.{signature_segment}"
+
+
+def decode_jwt(token: str, secret: str) -> dict:
+    try:
+        header_segment, payload_segment, signature_segment = token.split(".")
+    except ValueError as error:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token format") from error
+
+    signing_input = f"{header_segment}.{payload_segment}".encode("utf-8")
+    expected_signature = hmac.new(secret.encode("utf-8"), signing_input, hashlib.sha256).digest()
+    provided_signature = base64url_decode(signature_segment)
+
+    if not hmac.compare_digest(expected_signature, provided_signature):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token signature")
+
+    try:
+        payload = json.loads(base64url_decode(payload_segment).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload") from error
+
+    exp = payload.get("exp")
+    if exp is None or not isinstance(exp, int):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token expiration")
+
+    if datetime.now(timezone.utc).timestamp() > exp:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+
+    return payload
 
 
 def parse_bearer_token(authorization: str | None) -> str:
@@ -126,12 +179,8 @@ def parse_bearer_token(authorization: str | None) -> str:
 
 def get_current_user(authorization: str | None = Header(default=None)):
     token = parse_bearer_token(authorization)
-
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        email = payload.get("email")
-    except JWTError as error:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token") from error
+    payload = decode_jwt(token, JWT_SECRET)
+    email = payload.get("email")
 
     if not email:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")

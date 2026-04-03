@@ -4,7 +4,6 @@ python-multipart
 pdfplumber
 python-docx
 pymongo
-python-jose
 passlib[bcrypt]
 python-dotenv
 email-validator
