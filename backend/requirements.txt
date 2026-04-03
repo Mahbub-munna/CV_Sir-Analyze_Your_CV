@@ -5,4 +5,3 @@ pdfplumber
 python-docx
 pymongo
 python-dotenv
-email-validator

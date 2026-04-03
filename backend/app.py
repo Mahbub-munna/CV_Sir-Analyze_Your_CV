@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 try:
     from pymongo import MongoClient
     from pymongo.errors import DuplicateKeyError
@@ -71,19 +71,19 @@ app = FastAPI()
 
 class RegisterRequest(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     password: str
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
 class UserOut(BaseModel):
     id: str
     name: str
-    email: EmailStr
+    email: str
 
 
 class AuthResponse(BaseModel):
@@ -129,6 +129,14 @@ def validate_password_strength(password: str):
             status_code=400,
             detail="Password must include at least one letter and one number",
         )
+
+
+def validate_email_format(email: str):
+    normalized = email.strip().lower()
+    pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+    if not re.match(pattern, normalized):
+        raise HTTPException(status_code=400, detail="Invalid email address")
+    return normalized
 
 
 def hash_password(password: str) -> str:
@@ -297,11 +305,12 @@ def map_user(user_document) -> UserOut:
 @app.post("/auth/register", response_model=AuthResponse)
 async def register(payload: RegisterRequest):
     validate_password_strength(payload.password)
+    normalized_email = validate_email_format(payload.email)
 
     user_document = {
         "id": str(uuid.uuid4()),
         "name": payload.name.strip(),
-        "email": payload.email.lower(),
+        "email": normalized_email,
         "password_hash": hash_password(payload.password),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -317,7 +326,8 @@ async def register(payload: RegisterRequest):
 
 @app.post("/auth/login", response_model=AuthResponse)
 async def login(payload: LoginRequest):
-    user_document = find_user_by_email(payload.email.lower())
+    normalized_email = validate_email_format(payload.email)
+    user_document = find_user_by_email(normalized_email)
 
     if not user_document or not verify_password(payload.password, user_document["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
