@@ -5,11 +5,13 @@ body {
   color: #1f2933;
 }
 
-/* ================= HEADER ================= */
 .topbar {
   background: #ffffff;
   padding: 16px 40px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .logo {
@@ -18,7 +20,12 @@ body {
   color: #2563eb;
 }
 
-/* ================= MAIN CARD ================= */
+.auth-status {
+  font-size: 14px;
+  color: #4b5563;
+  font-weight: 600;
+}
+
 .wizard-card {
   max-width: 900px;
   margin: 40px auto;
@@ -28,7 +35,48 @@ body {
   box-shadow: 0 30px 60px rgba(0,0,0,0.08);
 }
 
-/* ================= STEPS ================= */
+.auth-card {
+  margin-bottom: 20px;
+}
+
+.auth-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.auth-form {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-form h3 {
+  margin: 4px 0 6px;
+}
+
+.auth-message {
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.auth-message.success {
+  color: #16a34a;
+}
+
+.auth-message.error {
+  color: #dc2626;
+}
+
+.session-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .steps {
   display: flex;
   align-items: center;
@@ -74,7 +122,6 @@ body {
   background: #e5e7eb;
 }
 
-/* ================= STEP CONTENT ================= */
 .step-content {
   display: none;
   text-align: center;
@@ -89,7 +136,6 @@ body {
   font-size: 1.6rem;
 }
 
-/* ================= UPLOAD BOX ================= */
 .upload-box {
   border: 2px dashed #c7d2fe;
   border-radius: 16px;
@@ -117,8 +163,9 @@ body {
   color: #6b7280;
 }
 
-/* ================= INPUTS ================= */
 input[type="text"],
+input[type="email"],
+input[type="password"],
 textarea,
 .extra-inputs input {
   width: 100%;
@@ -127,6 +174,7 @@ textarea,
   border: 1px solid #d1d5db;
   font-size: 15px;
   outline: none;
+  box-sizing: border-box;
 }
 
 input:focus,
@@ -141,7 +189,6 @@ textarea:focus {
   margin-top: 20px;
 }
 
-/* ================= BUTTONS ================= */
 button {
   margin-top: 25px;
   background: #2563eb;
@@ -175,7 +222,6 @@ button.secondary:hover {
   gap: 15px;
 }
 
-/* ================= AUTOCOMPLETE FIX ================= */
 .autocomplete-container {
   position: relative;
   width: 100%;
@@ -208,7 +254,6 @@ button.secondary:hover {
   background: #eef2ff;
 }
 
-/* ================= RESULTS ================= */
 .results-section {
   margin-top: 50px;
 }
@@ -240,12 +285,10 @@ button.secondary:hover {
   margin: 0;
 }
 
-/* Score Colors */
 .score-low { color: #dc2626; }
 .score-mid { color: #d97706; }
 .score-high { color: #16a34a; }
 
-/* Career Summary */
 .career-summary {
   margin: 25px 0;
   padding: 18px;
@@ -254,7 +297,6 @@ button.secondary:hover {
   text-align: center;
 }
 
-/* ================= SKILL DASHBOARD SECTIONS ================= */
 .skill-section {
   margin-bottom: 25px;
   padding: 20px;
@@ -290,7 +332,6 @@ button.secondary:hover {
   font-weight: 500;
 }
 
-/* ================= RECOMMENDED JOBS ================= */
 .recommended-jobs {
   margin-top: 12px;
   display: grid;
@@ -320,40 +361,6 @@ button.secondary:hover {
   font-size: 14px;
 }
 
-.job-links a:not(.job-btn) {
-  margin-right: 12px;
-  color: #2563eb;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.job-links a:not(.job-btn):hover {
-  text-decoration: underline;
-}
-
-/* ================= RESPONSIVE ================= */
-@media (max-width: 768px) {
-  .wizard-card {
-    padding: 25px;
-  }
-
-  .steps {
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .line {
-    display: none;
-  }
-
-  .extra-inputs {
-    flex-direction: column;
-  }
-}
-/* ===============================
-   JOB BUTTON STYLE (MODERN)
-================================ */
-
 .job-links {
   display: flex;
   gap: 12px;
@@ -372,7 +379,6 @@ button.secondary:hover {
   color: white;
 }
 
-/* LinkedIn */
 .job-btn.linkedin {
   background: #0a66c2;
 }
@@ -382,7 +388,6 @@ button.secondary:hover {
   transform: translateY(-2px);
 }
 
-/* Indeed */
 .job-btn.indeed {
   background: #2563eb;
 }
@@ -390,4 +395,23 @@ button.secondary:hover {
 .job-btn.indeed:hover {
   background: #1e40af;
   transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .wizard-card {
+    padding: 25px;
+  }
+
+  .steps {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .line {
+    display: none;
+  }
+
+  .extra-inputs {
+    flex-direction: column;
+  }
 }

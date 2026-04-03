@@ -1,8 +1,6 @@
-// ===============================
-// CONFIG
-// ===============================
-
 const BASE_API_URL = "http://127.0.0.1:8000";
+const AUTH_STORAGE_KEY = "cvsir_access_token";
+const USER_STORAGE_KEY = "cvsir_user";
 
 const JOB_ROLES = [
   "Data Analyst",
@@ -22,9 +20,131 @@ const JOB_ROLES = [
   "Mobile App Developer"
 ];
 
-// ===============================
-// STEP NAVIGATION
-// ===============================
+function getToken() {
+  return localStorage.getItem(AUTH_STORAGE_KEY);
+}
+
+function setSession(token, user) {
+  localStorage.setItem(AUTH_STORAGE_KEY, token);
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  updateAuthUI();
+}
+
+function clearSession() {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  localStorage.removeItem(USER_STORAGE_KEY);
+  updateAuthUI();
+}
+
+function getAuthHeaders() {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function setAuthMessage(message, type = "") {
+  const authMessage = document.getElementById("authMessage");
+  authMessage.textContent = message;
+  authMessage.className = `auth-message ${type}`.trim();
+}
+
+function updateAuthUI() {
+  const token = getToken();
+  const analyzerSection = document.getElementById("analyzerSection");
+  const authStatus = document.getElementById("authStatus");
+  const user = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || "null");
+
+  if (token && user) {
+    analyzerSection.style.display = "block";
+    authStatus.textContent = `Logged in as ${user.name}`;
+  } else {
+    analyzerSection.style.display = "none";
+    authStatus.textContent = "Not logged in";
+  }
+}
+
+async function callApi(path, options = {}) {
+  const mergedOptions = {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...getAuthHeaders()
+    }
+  };
+
+  const response = await fetch(`${BASE_API_URL}${path}`, mergedOptions);
+  const responseData = await response.json();
+
+  if (!response.ok) {
+    throw new Error(responseData.detail || responseData.error || "Request failed");
+  }
+
+  return responseData;
+}
+
+async function register(event) {
+  event.preventDefault();
+
+  try {
+    const body = {
+      name: document.getElementById("registerName").value.trim(),
+      email: document.getElementById("registerEmail").value.trim(),
+      password: document.getElementById("registerPassword").value
+    };
+
+    const data = await callApi("/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    setSession(data.access_token, data.user);
+    setAuthMessage("Registration successful. You can now analyze resumes.", "success");
+    event.target.reset();
+
+  } catch (error) {
+    setAuthMessage(error.message, "error");
+  }
+}
+
+async function login(event) {
+  event.preventDefault();
+
+  try {
+    const body = {
+      email: document.getElementById("loginEmail").value.trim(),
+      password: document.getElementById("loginPassword").value
+    };
+
+    const data = await callApi("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    setSession(data.access_token, data.user);
+    setAuthMessage("Login successful.", "success");
+    event.target.reset();
+
+  } catch (error) {
+    setAuthMessage(error.message, "error");
+  }
+}
+
+async function validateExistingToken() {
+  if (!getToken()) {
+    updateAuthUI();
+    return;
+  }
+
+  try {
+    const user = await callApi("/auth/me", { method: "GET" });
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  } catch (_error) {
+    clearSession();
+  }
+
+  updateAuthUI();
+}
 
 function goToStep(stepNumber) {
   document.querySelectorAll(".step-content").forEach(el => {
@@ -41,10 +161,6 @@ function goToStep(stepNumber) {
   document.getElementById(`step${stepNumber}`).classList.add("active");
 }
 
-// ===============================
-// AUTOCOMPLETE
-// ===============================
-
 const roleInput = document.getElementById("targetRole");
 const suggestionsBox = document.getElementById("roleSuggestions");
 
@@ -58,9 +174,7 @@ if (roleInput) {
       return;
     }
 
-    const matches = JOB_ROLES.filter(role =>
-      role.toLowerCase().includes(query)
-    );
+    const matches = JOB_ROLES.filter(role => role.toLowerCase().includes(query));
 
     if (matches.length === 0) {
       suggestionsBox.style.display = "none";
@@ -84,18 +198,19 @@ if (roleInput) {
   });
 }
 
-document.addEventListener("click", (e) => {
-  if (!e.target.closest(".autocomplete-container")) {
+document.addEventListener("click", (event) => {
+  if (suggestionsBox && !event.target.closest(".autocomplete-container")) {
     suggestionsBox.style.display = "none";
   }
 });
 
-// ===============================
-// ANALYZE
-// ===============================
-
 async function analyze(event) {
   if (event) event.preventDefault();
+
+  if (!getToken()) {
+    setAuthMessage("Please login first.", "error");
+    return;
+  }
 
   const resumeFile = document.getElementById("resumeFile").files[0];
   const targetRole = document.getElementById("targetRole").value;
@@ -124,35 +239,23 @@ async function analyze(event) {
   }
 
   try {
-    const response = await fetch(`${BASE_API_URL}/analyze`, {
+    const data = await callApi("/analyze", {
       method: "POST",
       body: formData
     });
 
-    const data = await response.json();
     renderResults(data);
 
-  } catch (err) {
-    console.error("Analyze error:", err);
-    alert("Backend error");
+  } catch (error) {
+    setAuthMessage(error.message, "error");
   }
 }
 
-// ===============================
-// RENDER RESULTS
-// ===============================
-
 function renderResults(data) {
-
   document.getElementById("resTargetRole").textContent = data.target_role || "-";
-
-  document.getElementById("resRoleMatch").textContent =
-    data.role_match_percentage + "%";
-
+  document.getElementById("resRoleMatch").textContent = `${data.role_match_percentage}%`;
   document.getElementById("resJdMatch").textContent =
-    data.jd_match_percentage !== null
-      ? data.jd_match_percentage + "%"
-      : "N/A";
+    data.jd_match_percentage !== null ? `${data.jd_match_percentage}%` : "N/A";
 
   renderList("roleMissingSkillsList", data.role_missing_skills);
   renderList("roleExtraSkillsList", data.role_extra_skills);
@@ -161,10 +264,6 @@ function renderResults(data) {
   renderChart(data.role_matches || {});
   renderRecommendedJobs(data);
 }
-
-// ===============================
-// LIST RENDER
-// ===============================
 
 function renderList(id, items = []) {
   const ul = document.getElementById(id);
@@ -183,10 +282,6 @@ function renderList(id, items = []) {
     ul.appendChild(li);
   });
 }
-
-// ===============================
-// CHART
-// ===============================
 
 let roleChart = null;
 
@@ -224,12 +319,7 @@ function renderChart(roleMatches) {
   });
 }
 
-// ===============================
-// JOB RECOMMENDATIONS
-// ===============================
-
 async function renderRecommendedJobs(data) {
-
   const container = document.getElementById("recommendedJobs");
   container.innerHTML = "";
 
@@ -238,45 +328,44 @@ async function renderRecommendedJobs(data) {
     .slice(0, 3);
 
   for (const [role, profile] of rankedRoles) {
-
     const formData = new FormData();
     formData.append("role", role);
     formData.append("level", profile.level);
 
     try {
-      const response = await fetch(`${BASE_API_URL}/job-recommendations`, {
+      const result = await callApi("/job-recommendations", {
         method: "POST",
         body: formData
       });
 
-      const result = await response.json();
-
       const card = document.createElement("div");
       card.className = "job-card";
 
-      // 🔥 ONLY UI CHANGE HERE
       card.innerHTML = `
         <h4>${role}</h4>
-
         <div class="job-meta">
           <span><strong>Level:</strong> ${profile.level}</span>
           <span><strong>Readiness:</strong> ${profile.score}%</span>
         </div>
-
         <div class="job-links">
-          <a class="job-btn linkedin" href="${result.external_links.linkedin}" target="_blank">
-            LinkedIn Jobs →
-          </a>
-          <a class="job-btn indeed" href="${result.external_links.indeed}" target="_blank">
-            Indeed Jobs →
-          </a>
+          <a class="job-btn linkedin" href="${result.external_links.linkedin}" target="_blank">LinkedIn Jobs →</a>
+          <a class="job-btn indeed" href="${result.external_links.indeed}" target="_blank">Indeed Jobs →</a>
         </div>
       `;
 
       container.appendChild(card);
 
-    } catch (err) {
-      console.error("Recommendation error:", err);
+    } catch (error) {
+      setAuthMessage(error.message, "error");
     }
   }
 }
+
+document.getElementById("registerForm")?.addEventListener("submit", register);
+document.getElementById("loginForm")?.addEventListener("submit", login);
+document.getElementById("logoutBtn")?.addEventListener("click", () => {
+  clearSession();
+  setAuthMessage("Logged out.", "success");
+});
+
+validateExistingToken();
