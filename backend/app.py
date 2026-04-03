@@ -12,7 +12,6 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
@@ -42,8 +41,6 @@ mongo_client = MongoClient(MONGODB_URI)
 database = mongo_client["cv_sir"]
 users_collection = database["users"]
 users_collection.create_index("email", unique=True)
-
-password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI()
 
@@ -108,6 +105,31 @@ def validate_password_strength(password: str):
             status_code=400,
             detail="Password must include at least one letter and one number",
         )
+
+
+def hash_password(password: str) -> str:
+    iterations = 120_000
+    salt = os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+    return f"{iterations}${base64.urlsafe_b64encode(salt).decode('utf-8')}${base64.urlsafe_b64encode(digest).decode('utf-8')}"
+
+
+def verify_password(password: str, encoded_password: str) -> bool:
+    try:
+        iterations_raw, salt_raw, digest_raw = encoded_password.split("$")
+        iterations = int(iterations_raw)
+        salt = base64.urlsafe_b64decode(salt_raw.encode("utf-8"))
+        stored_digest = base64.urlsafe_b64decode(digest_raw.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
+
+    candidate_digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        iterations,
+    )
+    return hmac.compare_digest(candidate_digest, stored_digest)
 
 
 def create_access_token(payload: dict) -> str:
@@ -216,7 +238,7 @@ async def register(payload: RegisterRequest):
     user_document = {
         "name": payload.name.strip(),
         "email": payload.email.lower(),
-        "password_hash": password_context.hash(payload.password),
+        "password_hash": hash_password(payload.password),
         "created_at": datetime.now(timezone.utc),
     }
 
@@ -233,7 +255,7 @@ async def register(payload: RegisterRequest):
 async def login(payload: LoginRequest):
     user_document = users_collection.find_one({"email": payload.email.lower()})
 
-    if not user_document or not password_context.verify(payload.password, user_document["password_hash"]):
+    if not user_document or not verify_password(payload.password, user_document["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_access_token({"email": user_document["email"]})
