@@ -5,6 +5,7 @@ import hmac
 import json
 import os
 import re
+import sqlite3
 import shutil
 import uuid
 
@@ -13,8 +14,14 @@ from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadF
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
-from pymongo import MongoClient
-from pymongo.errors import DuplicateKeyError
+try:
+    from pymongo import MongoClient
+    from pymongo.errors import DuplicateKeyError
+    PYMONGO_AVAILABLE = True
+except ModuleNotFoundError:
+    MongoClient = None
+    DuplicateKeyError = Exception
+    PYMONGO_AVAILABLE = False
 
 from career_scorer import calculate_career_readiness, classify_job_level
 from jd_scorer import compare_resume_with_jd
@@ -34,13 +41,30 @@ MONGODB_URI = os.getenv("MONGODB_URI")
 
 if not JWT_SECRET:
     raise RuntimeError("JWT_SECRET is missing in .env")
-if not MONGODB_URI:
-    raise RuntimeError("MONGODB_URI is missing in .env")
 
-mongo_client = MongoClient(MONGODB_URI)
-database = mongo_client["cv_sir"]
-users_collection = database["users"]
-users_collection.create_index("email", unique=True)
+USE_MONGO = bool(MONGODB_URI and PYMONGO_AVAILABLE)
+sqlite_connection = None
+users_collection = None
+
+if USE_MONGO:
+    mongo_client = MongoClient(MONGODB_URI)
+    database = mongo_client["cv_sir"]
+    users_collection = database["users"]
+    users_collection.create_index("email", unique=True)
+else:
+    sqlite_connection = sqlite3.connect("users.db", check_same_thread=False)
+    sqlite_connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    sqlite_connection.commit()
 
 app = FastAPI()
 
@@ -132,6 +156,45 @@ def verify_password(password: str, encoded_password: str) -> bool:
     return hmac.compare_digest(candidate_digest, stored_digest)
 
 
+def insert_user(user_document: dict):
+    if USE_MONGO:
+        users_collection.insert_one(user_document)
+        return
+
+    sqlite_connection.execute(
+        "INSERT INTO users (id, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
+        (
+            user_document["id"],
+            user_document["name"],
+            user_document["email"],
+            user_document["password_hash"],
+            user_document["created_at"],
+        ),
+    )
+    sqlite_connection.commit()
+
+
+def find_user_by_email(email: str):
+    if USE_MONGO:
+        return users_collection.find_one({"email": email})
+
+    cursor = sqlite_connection.execute(
+        "SELECT id, name, email, password_hash, created_at FROM users WHERE email = ?",
+        (email,),
+    )
+    row = cursor.fetchone()
+    if not row:
+        return None
+
+    return {
+        "id": row[0],
+        "name": row[1],
+        "email": row[2],
+        "password_hash": row[3],
+        "created_at": row[4],
+    }
+
+
 def create_access_token(payload: dict) -> str:
     expire = datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
     payload_to_encode = {**payload, "exp": int(expire.timestamp())}
@@ -207,7 +270,7 @@ def get_current_user(authorization: str | None = Header(default=None)):
     if not email:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
 
-    user = users_collection.find_one({"email": email})
+    user = find_user_by_email(email)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
@@ -222,7 +285,7 @@ def validate_file_type(filename: str):
 
 def map_user(user_document) -> UserOut:
     return UserOut(
-        id=str(user_document["_id"]),
+        id=str(user_document["id"]),
         name=user_document["name"],
         email=user_document["email"],
     )
@@ -236,15 +299,16 @@ async def register(payload: RegisterRequest):
     validate_password_strength(payload.password)
 
     user_document = {
+        "id": str(uuid.uuid4()),
         "name": payload.name.strip(),
         "email": payload.email.lower(),
         "password_hash": hash_password(payload.password),
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
     try:
-        users_collection.insert_one(user_document)
-    except DuplicateKeyError as error:
+        insert_user(user_document)
+    except (DuplicateKeyError, sqlite3.IntegrityError) as error:
         raise HTTPException(status_code=409, detail="Email already exists") from error
 
     token = create_access_token({"email": user_document["email"]})
@@ -253,7 +317,7 @@ async def register(payload: RegisterRequest):
 
 @app.post("/auth/login", response_model=AuthResponse)
 async def login(payload: LoginRequest):
-    user_document = users_collection.find_one({"email": payload.email.lower()})
+    user_document = find_user_by_email(payload.email.lower())
 
     if not user_document or not verify_password(payload.password, user_document["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
